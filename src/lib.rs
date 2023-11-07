@@ -43,30 +43,30 @@ static regimm_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError
 
 #[rustfmt::skip]
 static coprs_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;32] = [
-    Ok((MF,R_t)), Ok((DMF,R_t)),  Ok((CF,R_t)),   Err(RIE),     Ok((MT,R_t)), Ok((DMT,R_t)),  Ok((CT,R_t)),   Err(RIE),
-    Ok((BC,cop)), Err(RIE),       Err(RIE),       Err(RIE),     Err(RIE),     Err(RIE),       Err(RIE),       Err(RIE),
-    Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)), Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)),
-    Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)), Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)), 
+    Ok((MF,R_t)),   Ok((DMF,R_t)),    Ok((CF,R_t)),     Err(RIE),       Ok((MT,R_t)),   Ok((DMT,R_t)),    Ok((CT,R_t)),     Err(RIE),
+    Ok((BC,I_t)),   Err(RIE),         Err(RIE),         Err(RIE),       Err(RIE),       Err(RIE),         Err(RIE),         Err(RIE),
+    Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)), Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)),
+    Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)), Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)), 
 ];
 
 #[rustfmt::skip]
-static coprt_lookup: [Result<instr::opcode,DisasemblerError>;32] = [
-Ok(BCF),  Ok(BCT),  Ok(BCFL), Ok(BCTL), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
+static coprt_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;32] = [
+	Ok((BCF,I_t)),  Ok((BCT,I_t)),  Ok((BCFL,I_t)), Ok((BCTL,I_t)), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
+	Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE), Err(RIE), Err(RIE), Err(RIE),
+	Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE), Err(RIE), Err(RIE), Err(RIE),
+	Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE), Err(RIE), Err(RIE), Err(RIE),
 ];
 
 #[rustfmt::skip]
-static copzero_lookup: [Result<instr::opcode,DisasemblerError>;64] = [
-    Err(InvOp), Ok(TLBR), Ok(TLBWI),Err(InvOp), Err(InvOp), Err(InvOp), Ok(TLBWR),Err(InvOp),
-    Ok(TLBP), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
-    Err(RIE), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
-    Ok(ERET), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
-    Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
-    Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
-    Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
-    Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),
+static copzero_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;64] = [
+    Err(InvOp),     Ok((TLBR,cop)), Ok((TLBWI,cop)), Err(InvOp), Err(InvOp), Err(InvOp), Ok((TLBWR,cop)), Err(InvOp),
+    Ok((TLBP,cop)), Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
+    Err(RIE),       Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
+    Ok((ERET,cop)), Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
+    Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
+    Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
+    Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
+    Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
 ];
 
 pub fn decode(raw: u32) -> Instruction {

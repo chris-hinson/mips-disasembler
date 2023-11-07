@@ -27,6 +27,7 @@ pub enum InstructionFormat {
     I_t,
     J_t,
     R_t,
+	cop
 }
 
 pub enum DisasemblerError {
@@ -175,7 +176,7 @@ pub enum opcode {
     DMT,
     CT,
     BC,
-    CO,
+    COPz,
     BCF,
     BCT,
     BCFL,
