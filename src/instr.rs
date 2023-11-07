@@ -23,6 +23,12 @@ pub struct Instruction {
     //mnemonic: String,
 }
 
+pub enum InstructionFormat {
+    I_t,
+    J_t,
+    R_t,
+}
+
 pub enum DisasemblerError {
     //reserved instruction excpetion
     RIE,

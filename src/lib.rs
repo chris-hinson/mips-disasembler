@@ -6,45 +6,47 @@ use instr::source::*;
 use instr::DisasemblerError;
 use instr::DisasemblerError::*;
 use instr::Instruction;
+use instr::InstructionFormat;
+use instr::InstructionFormat::*;
 
 #[rustfmt::skip]
-static opcode_main: [Result<instr::opcode,DisasemblerError>; 64] = [
-    Err(Lookup), Err(Lookup), Ok(J),       Ok(JAL),   Ok(BEQ),  Ok(BNE),  Ok(BLEZ),  Ok(BGTZ),
-    Ok(ADDI),    Ok(ADDIU),   Ok(SLTI),    Ok(SLTIU), Ok(ANDI), Ok(ORI),  Ok(XORI),  Ok(LUI),
-    Err(Lookup), Err(Lookup), Err(Lookup), Err(RIE),  Ok(BEQL), Ok(BNEL), Ok(BLEZL), Ok(BGTZL), 
-    Ok(DADDI),   Ok(DADDIU),  Ok(LDL),     Ok(LDR),   Err(RIE), Err(RIE), Err(RIE),  Err(RIE), 
-    Ok(LB),      Ok(LH),      Ok(LWL),     Ok(LW),    Ok(LBU),  Ok(LHU),  Ok(LWR),   Ok(LWU),
-    Ok(SB),      Ok(SH),      Ok(SWL),     Ok(SW),    Ok(SDL),  Ok(SDR),  Ok(SWR),   Ok(CACHE),
-    Ok(LL),      Ok(LWC1),    Ok(LWC2),    Ok(LLD),   Err(RIE), Ok(LDC1), Ok(LDC2),  Ok(LD),
-    Ok(SC),      Ok(SWC1),    Ok(SWC2),    Ok(SCD),   Err(RIE), Ok(SDC1), Ok(SDC2),  Ok(SD),
+static opcode_main: [Result<(instr::opcode,InstructionFormat),DisasemblerError>; 64] = [
+    Err(Lookup),     Err(Lookup),      Ok((J,J_t)),    Ok((JAL,J_t)),   Ok((BEQ,I_t)),  Ok((BNE,I_t)),  Ok((BLEZ,I_t)),  Ok((BGTZ,I_t)),
+    Ok((ADDI,I_t)),  Ok((ADDIU,I_t)),  Ok((SLTI,I_t)), Ok((SLTIU,I_t)), Ok((ANDI,I_t)), Ok((ORI,I_t)),  Ok((XORI,I_t)),  Ok((LUI,I_t)),
+    Err(Lookup),     Err(Lookup),      Err(Lookup),    Err(RIE),        Ok((BEQL,I_t)), Ok((BNEL,I_t)), Ok((BLEZL,I_t)), Ok((BGTZL,I_t)), 
+    Ok((DADDI,I_t)), Ok((DADDIU,I_t)), Ok((LDL,I_t)),  Ok((LDR,I_t)),   Err(RIE),       Err(RIE),       Err(RIE),        Err(RIE), 
+    Ok((LB,I_t)),    Ok((LH,I_t)),     Ok((LWL,I_t)),  Ok((LW,I_t)),    Ok((LBU,I_t)),  Ok((LHU,I_t)),  Ok((LWR,I_t)),   Ok((LWU,I_t)),
+    Ok((SB,I_t)),    Ok((SH,I_t)),     Ok((SWL,I_t)),  Ok((SW,I_t)),    Ok((SDL,I_t)),  Ok((SDR,I_t)),  Ok((SWR,I_t)),   Ok((CACHE,I_t)),
+    Ok((LL,I_t)),    Ok((LWC1,I_t)),   Ok((LWC2,I_t)), Ok((LLD,I_t)),   Err(RIE),       Ok((LDC1,I_t)), Ok((LDC2,I_t)),  Ok((LD,I_t)),
+    Ok((SC,I_t)),    Ok((SWC1,I_t)),   Ok((SWC2,I_t)), Ok((SCD,I_t)),   Err(RIE),       Ok((SDC1,I_t)), Ok((SDC2,I_t)),  Ok((SD,I_t)),
 ];
 
 #[rustfmt::skip]
-static special_lookup: [Result<instr::opcode,DisasemblerError>;64] = [
-    Ok(SLL),  Err(RIE),  Ok(SRL),  Ok(SRA),  Ok(SLLV),    Err(RIE),   Ok(SRLV),   Ok(SRAV),
-    Ok(JR),   Ok(JALR),  Err(RIE), Err(RIE), Ok(SYSCALL), Ok(BREAK),  Err(RIE),   Ok(SYNC),
-    Ok(MFHI), Ok(MTHI),  Ok(MFLO), Ok(MTLO), Ok(DSLLV),   Err(RIE),   Ok(DSRLV),  Ok(DSRAV),
-    Ok(MULT), Ok(MULTU), Ok(DIV),  Ok(DIVU), Ok(DMULT),   Ok(DMULTU), Ok(DDIV),   Ok(DDIVU),
-    Ok(ADD),  Ok(ADDU),  Ok(SUB),  Ok(SUBU), Ok(AND),     Ok(OR),     Ok(XOR),    Ok(NOR),
-    Err(RIE), Err(RIE),  Ok(SLT),  Ok(SLTU), Ok(DADD),    Ok(DADDU),  Ok(DSUB),   Ok(DSUBU),
-    Ok(TGE),  Ok(TGEU),  Ok(TLT),  Ok(TLTU), Ok(TEQ),     Err(RIE),   Ok(TNE),    Err(RIE),
-    Ok(DSLL), Err(RIE),  Ok(DSRL), Ok(DSRA), Ok(DSLL32),  Err(RIE),   Ok(DSRL32), Ok(DSRA32),
+static special_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;64] = [
+    Ok((SLL,R_t)),  Err(RIE),        Ok((SRL,R_t)),  Ok((SRA,R_t)),   Ok((SLLV,R_t)),    Err(RIE),          Ok((SRLV,R_t)),   Ok((SRAV,R_t)),
+    Ok((JR,R_t)),   Ok((JALR,R_t)),  Err(RIE),       Err(RIE),        Ok((SYSCALL,R_t)), Ok((BREAK,R_t)),   Err(RIE),         Ok((SYNC,R_t)),
+    Ok((MFHI,R_t)), Ok((MTHI,R_t)),  Ok((MFLO,R_t)), Ok((MTLO,R_t)),  Ok((DSLLV,R_t)),   Err(RIE),          Ok((DSRLV,R_t)),  Ok((DSRAV,R_t)),
+    Ok((MULT,R_t)), Ok((MULTU,R_t)), Ok((DIV,R_t)),  Ok((DIVU,R_t)),  Ok((DMULT,R_t)),   Ok((DMULTU,R_t)),  Ok((DDIV,R_t)),   Ok((DDIVU,R_t)),
+    Ok((ADD,R_t)),  Ok((ADDU,R_t)),  Ok((SUB,R_t)),  Ok((SUBU,R_t)),  Ok((AND,R_t)),     Ok((OR,R_t)),      Ok((XOR,R_t)),    Ok((NOR,R_t)),
+    Err(RIE),       Err(RIE),        Ok((SLT,R_t)),  Ok((SLTU,R_t)),  Ok((DADD,R_t)),    Ok((DADDU,R_t)),   Ok((DSUB,R_t)),   Ok((DSUBU,R_t)),
+    Ok((TGE,R_t)),  Ok((TGEU,R_t)),  Ok((TLT,R_t)),  Ok((TLTU,R_t)),  Ok((TEQ,R_t)),     Err(RIE),          Ok((TNE,R_t)),    Err(RIE),
+    Ok((DSLL,R_t)), Err(RIE),        Ok((DSRL,R_t)), Ok((DSRA,R_t)),  Ok((DSLL32,R_t)),  Err(RIE),          Ok((DSRL32,R_t)), Ok((DSRA32,R_t)),
 ];
 
 #[rustfmt::skip]
-static regimm_lookup: [Result<instr::opcode,DisasemblerError>;32] = [
-    Ok(BLTZ),   Ok(BGEZ),   Ok(BLTZI),   Ok(BGEZL),   Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-    Ok(TGEI),   Ok(TGEIU),  Ok(TLTI),    Ok(TLTIU),   Ok(TEQI), Err(RIE), Ok(TNEI), Err(RIE),
-    Ok(BLTZAL), Ok(BGEZAL), Ok(BLTZALL), Ok(BGEZALL), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-    Err(RIE),   Err(RIE),   Err(RIE),    Err(RIE),    Err(RIE), Err(RIE), Err(RIE), Err(RIE),
+static regimm_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;32] = [
+    Ok((BLTZ,I_t)),   Ok((BGEZ,I_t)),   Ok((BLTZI,I_t)),   Ok((BGEZL,I_t)),   Err(RIE),       Err(RIE), Err(RIE),       Err(RIE),
+    Ok((TGEI,I_t)),   Ok((TGEIU,I_t)),  Ok((TLTI,I_t)),    Ok((TLTIU,I_t)),   Ok((TEQI,I_t)), Err(RIE), Ok((TNEI,I_t)), Err(RIE),
+    Ok((BLTZAL,I_t)), Ok((BGEZAL,I_t)), Ok((BLTZALL,I_t)), Ok((BGEZALL,I_t)), Err(RIE),       Err(RIE), Err(RIE),       Err(RIE),
+    Err(RIE),         Err(RIE),         Err(RIE),          Err(RIE),          Err(RIE),       Err(RIE), Err(RIE),       Err(RIE),
 ];
 
 #[rustfmt::skip]
-static coprs_lookup: [Result<instr::opcode,DisasemblerError>;32] = [
-Ok(MF), Ok(DMF),  Ok(CF),   Err(RIE), Ok(MT),   Ok(DMT),  Ok(CT),   Err(RIE),
-Ok(BC), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-Ok(CO), Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),
-Ok(CO), Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO),   Ok(CO), 
+static coprs_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;32] = [
+    Ok((MF,R_t)), Ok((DMF,R_t)),  Ok((CF,R_t)),   Err(RIE),     Ok((MT,R_t)), Ok((DMT,R_t)),  Ok((CT,R_t)),   Err(RIE),
+    Ok((BC,cop)), Err(RIE),       Err(RIE),       Err(RIE),     Err(RIE),     Err(RIE),       Err(RIE),       Err(RIE),
+    Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)), Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)),
+    Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)), Ok((CO,cop)), Ok((CO,cop)),   Ok((CO,cop)),   Ok((CO,cop)), 
 ];
 
 #[rustfmt::skip]
