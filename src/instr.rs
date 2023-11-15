@@ -22,27 +22,41 @@ pub struct Instruction {
     pub dest: Option<dest>,
     //mnemonic: String,
 }
-
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum InstructionFormat {
     I_t,
     J_t,
     R_t,
-	cop
+    cop,
 }
 
-pub enum DisasemblerError {
+#[derive(PartialEq)]
+pub enum DisasemblerError<'a> {
     //reserved instruction excpetion
     RIE,
     InvOp,
-    Lookup,
+    Lookup64(
+        &'a (
+            [Result<(opcode, InstructionFormat), DisasemblerError<'a>>; 64],
+            usize,
+        ),
+    ),
+    Lookup32(
+        &'a (
+            [Result<(opcode, InstructionFormat), DisasemblerError<'a>>; 32],
+            usize,
+        ),
+    ),
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum source {
     GPR(GPR),
     CR(cop0reg),
     FPR(usize),
     IMM(u64),
 }
+#[derive(Debug, Clone, Copy)]
 pub enum dest {
     GPR(GPR),
     CR(cop0reg),
@@ -50,6 +64,7 @@ pub enum dest {
 }
 
 #[allow(non_camel_case_types)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum opcode {
     J,
     JAL,
@@ -189,7 +204,7 @@ pub enum opcode {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GPR {
     zero,
     at,
@@ -335,7 +350,7 @@ impl From<u8> for GPR {
 30 ErrorEPC Error Exception Program Counter
 31 — Reserved for future use
 */
-
+#[derive(Debug, Clone, Copy)]
 pub enum cop0reg {
     Index,    //32 bit
     Random,   //32 bit
