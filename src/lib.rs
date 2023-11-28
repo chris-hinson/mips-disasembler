@@ -10,7 +10,7 @@ use instr::InstructionFormat;
 use instr::InstructionFormat::*;
 
 #[rustfmt::skip]
-static opcode_main: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;64],usize) = ([
+static opcode_main: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;64],usize,usize) = ([
     Err(Lookup64(&special_lookup)),     Err(Lookup32(&regimm_lookup)),      Ok((J,J_t)),    Ok((JAL,J_t)),   Ok((BEQ,I_t)),  Ok((BNE,I_t)),  Ok((BLEZ,I_t)),  Ok((BGTZ,I_t)),
     Ok((ADDI,I_t)),  Ok((ADDIU,I_t)),  Ok((SLTI,I_t)), Ok((SLTIU,I_t)), Ok((ANDI,I_t)), Ok((ORI,I_t)),  Ok((XORI,I_t)),  Ok((LUI,I_t)),
     Err(Lookup32(&coprs_lookup)),     Err(Lookup32(&coprs_lookup)),      Err(Lookup32(&coprs_lookup)),    Err(RIE),        Ok((BEQL,I_t)), Ok((BNEL,I_t)), Ok((BLEZL,I_t)), Ok((BGTZL,I_t)), 
@@ -19,10 +19,12 @@ static opcode_main: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>
     Ok((SB,I_t)),    Ok((SH,I_t)),     Ok((SWL,I_t)),  Ok((SW,I_t)),    Ok((SDL,I_t)),  Ok((SDR,I_t)),  Ok((SWR,I_t)),   Ok((CACHE,I_t)),
     Ok((LL,I_t)),    Ok((LWC1,I_t)),   Ok((LWC2,I_t)), Ok((LLD,I_t)),   Err(RIE),       Ok((LDC1,I_t)), Ok((LDC2,I_t)),  Ok((LD,I_t)),
     Ok((SC,I_t)),    Ok((SWC1,I_t)),   Ok((SWC2,I_t)), Ok((SCD,I_t)),   Err(RIE),       Ok((SDC1,I_t)), Ok((SDC2,I_t)),  Ok((SD,I_t)),
-],0);
+],
+0b1111_1100_0000_0000_0000_0000_0000_0000,
+26);
 
 #[rustfmt::skip]
-static special_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;64],usize) = ([
+static special_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;64],usize,usize) = ([
     Ok((SLL,R_t)),  Err(RIE),        Ok((SRL,R_t)),  Ok((SRA,R_t)),   Ok((SLLV,R_t)),    Err(RIE),          Ok((SRLV,R_t)),   Ok((SRAV,R_t)),
     Ok((JR,R_t)),   Ok((JALR,R_t)),  Err(RIE),       Err(RIE),        Ok((SYSCALL,R_t)), Ok((BREAK,R_t)),   Err(RIE),         Ok((SYNC,R_t)),
     Ok((MFHI,R_t)), Ok((MTHI,R_t)),  Ok((MFLO,R_t)), Ok((MTLO,R_t)),  Ok((DSLLV,R_t)),   Err(RIE),          Ok((DSRLV,R_t)),  Ok((DSRAV,R_t)),
@@ -31,34 +33,42 @@ static special_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerErr
     Err(RIE),       Err(RIE),        Ok((SLT,R_t)),  Ok((SLTU,R_t)),  Ok((DADD,R_t)),    Ok((DADDU,R_t)),   Ok((DSUB,R_t)),   Ok((DSUBU,R_t)),
     Ok((TGE,R_t)),  Ok((TGEU,R_t)),  Ok((TLT,R_t)),  Ok((TLTU,R_t)),  Ok((TEQ,R_t)),     Err(RIE),          Ok((TNE,R_t)),    Err(RIE),
     Ok((DSLL,R_t)), Err(RIE),        Ok((DSRL,R_t)), Ok((DSRA,R_t)),  Ok((DSLL32,R_t)),  Err(RIE),          Ok((DSRL32,R_t)), Ok((DSRA32,R_t)),
-],0);
+],
+0b0000_0000_0000_0000_0000_0000_0011_1111,
+0);
 
 #[rustfmt::skip]
-static regimm_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;32],usize) = ([
+static regimm_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;32],usize,usize) = ([
     Ok((BLTZ,I_t)),   Ok((BGEZ,I_t)),   Ok((BLTZI,I_t)),   Ok((BGEZL,I_t)),   Err(RIE),       Err(RIE), Err(RIE),       Err(RIE),
     Ok((TGEI,I_t)),   Ok((TGEIU,I_t)),  Ok((TLTI,I_t)),    Ok((TLTIU,I_t)),   Ok((TEQI,I_t)), Err(RIE), Ok((TNEI,I_t)), Err(RIE),
     Ok((BLTZAL,I_t)), Ok((BGEZAL,I_t)), Ok((BLTZALL,I_t)), Ok((BGEZALL,I_t)), Err(RIE),       Err(RIE), Err(RIE),       Err(RIE),
     Err(RIE),         Err(RIE),         Err(RIE),          Err(RIE),          Err(RIE),       Err(RIE), Err(RIE),       Err(RIE),
-],0);
+],
+0b0000_0000_0001_1111_0000_0000_0000_0000,
+16);
 
 #[rustfmt::skip]
-static coprs_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;32],usize)= ([
+static coprs_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;32],usize,usize)= ([
     Ok((MF,R_t)),   Ok((DMF,R_t)),    Ok((CF,R_t)),     Err(RIE),       Ok((MT,R_t)),   Ok((DMT,R_t)),    Ok((CT,R_t)),     Err(RIE),
     Ok((BC,I_t)),   Err(RIE),         Err(RIE),         Err(RIE),       Err(RIE),       Err(RIE),         Err(RIE),         Err(RIE),
     Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)), Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)),
     Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)), Ok((COPz,cop)), Ok((COPz,cop)),   Ok((COPz,cop)),   Ok((COPz,cop)), 
-],0);
+],
+0b0000_0011_1110_0000_0000_0000_0000_0000,
+21);
 
 #[rustfmt::skip]
-static coprt_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;32],usize) = ([
+static coprt_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;32],usize,usize) = ([
 	Ok((BCF,I_t)),  Ok((BCT,I_t)),  Ok((BCFL,I_t)), Ok((BCTL,I_t)), Err(RIE), Err(RIE), Err(RIE), Err(RIE),
 	Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE), Err(RIE), Err(RIE), Err(RIE),
 	Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE), Err(RIE), Err(RIE), Err(RIE),
 	Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE),       Err(RIE), Err(RIE), Err(RIE), Err(RIE),
-],0);
+],
+0b0000_0000_0001_1111_0000_0000_0000_0000,
+16);
 
 #[rustfmt::skip]
-static copzero_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerError>;64] = [
+static copzero_lookup: ([Result<(instr::opcode,InstructionFormat),DisasemblerError>;64],usize,usize) = ([
     Err(InvOp),     Ok((TLBR,cop)), Ok((TLBWI,cop)), Err(InvOp), Err(InvOp), Err(InvOp), Ok((TLBWR,cop)), Err(InvOp),
     Ok((TLBP,cop)), Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
     Err(RIE),       Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
@@ -67,7 +77,9 @@ static copzero_lookup: [Result<(instr::opcode,InstructionFormat),DisasemblerErro
     Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
     Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
     Err(InvOp),     Err(InvOp),     Err(InvOp),      Err(InvOp), Err(InvOp), Err(InvOp), Err(InvOp),      Err(InvOp),
-];
+],
+0b0000_0000_0000_0000_0000_0000_0011_1111,
+0);
 
 pub fn decode(raw: u32) -> Instruction {
     let bytes: [u8; 4] = raw.to_be_bytes();
@@ -139,20 +151,21 @@ pub fn decode(raw: u32) -> Instruction {
     //index into table one based on bits 31..26 of the instr bits
     //let table_1_lookup = (raw & 0xFC000000) >> 26;
 
-    let mut val: &Result<(instr::opcode, InstructionFormat), DisasemblerError> = &Err(Lookup64(&opcode_main));
-    while val.as_ref().is_err_and(|x| *x !=RIE && *x != InvOp) {
-		match val.as_ref().unwrap_err() {
-			Lookup32(x) => {
-				val = &x.0[x.1];
-			},
-			Lookup64(x) => {
-				val = &x.0[x.1];
-			},
-			_=>unreachable!("?")
-		}
-	}
+    let mut val: &Result<(instr::opcode, InstructionFormat), DisasemblerError> =
+        &Err(Lookup64(&opcode_main));
+    while val.as_ref().is_err_and(|x| *x != RIE && *x != InvOp) {
+        match val.as_ref().unwrap_err() {
+            Lookup32(x) => {
+                val = &x.0[((raw as usize & x.1) >> x.2) as usize];
+            }
+            Lookup64(x) => {
+                val = &x.0[((raw as usize & x.1) >> x.2) as usize];
+            }
+            _ => unreachable!("?"),
+        }
+    }
 
-	println!("final val after lookups: {:?}",val);
+    println!("final val after lookups: {:?}", val);
 
     return Instruction {
         bytes,
