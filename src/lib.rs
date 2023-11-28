@@ -137,10 +137,22 @@ pub fn decode(raw: u32) -> Instruction {
     };*/
 
     //index into table one based on bits 31..26 of the instr bits
-    let table_1_lookup = (raw & 0xFC000000) >> 26;
+    //let table_1_lookup = (raw & 0xFC000000) >> 26;
 
-    //let mut val: Result<(instr::opcode, InstructionFormat), DisasemblerError> = Err(Lookup);
-    //while val.as_ref().is_err_and(|x| *x == Lookup) {}
+    let mut val: &Result<(instr::opcode, InstructionFormat), DisasemblerError> = &Err(Lookup64(&opcode_main));
+    while val.as_ref().is_err_and(|x| *x !=RIE && *x != InvOp) {
+		match val.as_ref().unwrap_err() {
+			Lookup32(x) => {
+				val = &x.0[x.1];
+			},
+			Lookup64(x) => {
+				val = &x.0[x.1];
+			},
+			_=>unreachable!("?")
+		}
+	}
+
+	println!("final val after lookups: {:?}",val);
 
     return Instruction {
         bytes,

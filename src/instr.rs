@@ -22,7 +22,7 @@ pub struct Instruction {
     pub dest: Option<dest>,
     //mnemonic: String,
 }
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy,Debug)]
 pub enum InstructionFormat {
     I_t,
     J_t,
@@ -30,7 +30,7 @@ pub enum InstructionFormat {
     cop,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Debug)]
 pub enum DisasemblerError<'a> {
     //reserved instruction excpetion
     RIE,
