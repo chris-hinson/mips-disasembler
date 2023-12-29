@@ -1,3 +1,6 @@
+use core::fmt;
+use std::hash::Hash;
+
 use proc_bitfield::bitfield;
 
 pub struct disasembler {
@@ -11,17 +14,47 @@ enum OperatingMode {
     Kernel,
 }
 
+pub struct Cpu {}
+
 //this struct defines a single MIPS op.
 //it contains the original bytes,
 //an easily parseable enum for what op it is
 //and a string mnemonic
-pub struct Instruction {
+//#[derive(Hash)]
+pub struct Instruction<Cpu> {
     pub bytes: [u8; 4],
     pub opcode: opcode,
     pub sources: [Option<source>; 3],
     pub dest: Option<dest>,
-    //mnemonic: String,
+    pub operation: Box<dyn FnMut(&mut Cpu)>,
+    //pub operation: fn(&mut Cpu),
+    pub machine_code: Vec<u8>,
 }
+impl Hash for Instruction<Cpu> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.bytes.hash(state);
+        self.opcode.hash(state);
+        self.sources.hash(state);
+        self.dest.hash(state);
+    }
+}
+
+impl std::fmt::Display for Instruction<Cpu> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "[{:x},{:x},{:x},{:x}]\n{:?}\n{:?}\n{:?}\nfunctional closure and machine code omitted",
+            self.bytes[0],
+            self.bytes[1],
+            self.bytes[2],
+            self.bytes[3],
+            self.opcode,
+            self.sources,
+            self.dest,
+        )
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum InstructionFormat {
     I_t,
@@ -51,14 +84,14 @@ pub enum DisasemblerError<'a> {
     ),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum source {
     GPR(GPR),
     CR(cop0reg),
     FPR(usize),
     IMM(u64),
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum dest {
     GPR(GPR),
     CR(cop0reg),
@@ -66,7 +99,7 @@ pub enum dest {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum opcode {
     J,
     JAL,
@@ -206,7 +239,7 @@ pub enum opcode {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum GPR {
     zero,
     at,
@@ -352,7 +385,7 @@ impl From<u8> for GPR {
 30 ErrorEPC Error Exception Program Counter
 31 — Reserved for future use
 */
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum cop0reg {
     Index,    //32 bit
     Random,   //32 bit

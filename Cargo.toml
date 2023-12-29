@@ -7,3 +7,12 @@ edition = "2021"
 
 [dependencies]
 proc-bitfield = "0.3.0"
+
+
+[lib]
+name = "disas"
+path = "src/lib.rs"
+
+[[bin]]
+name = "disasembler"
+path = "src/bin/bin.rs"
