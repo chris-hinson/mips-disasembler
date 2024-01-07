@@ -1,4 +1,10 @@
+#![feature(hash_extract_if)]
+
 mod instr;
+
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::rc::Rc;
 
 use instr::opcode::*;
 use instr::source;
@@ -10,6 +16,7 @@ use instr::Instruction;
 use instr::InstructionFormat;
 use instr::InstructionFormat::*;
 use instr::GPR;
+use std::ops::Range;
 
 use crate::instr::dest;
 
@@ -161,3 +168,62 @@ pub fn decode(raw: u32) -> Instruction<Cpu> {
 }
 
 pub fn test(cpu: &mut Cpu) {}
+
+
+
+pub struct Disasembler{
+    //hashset of thus far decoded instructions
+    //this is the "global" instruction translation cache
+    //we hash the raw bits of an instruction and equate that with a fully formed Instruction struct
+    ITC: HashMap<u32,Instruction<Cpu>>,
+
+    //NOTE: this may eventually be superceded by a fastmem implementation
+    //for now, we map address ranges to the basic block struct representing the instructions that lie there
+    Blocks: HashMap<std::ops::Range<usize>, BasicBlock>
+   
+}
+
+impl Disasembler{
+    //finding a basic block differs in interpreter and JIT mode
+    //in interpreter mode, a basic block is defined by as many instructions as you can go without hitting a control flow op
+    //in a jit block, the same rule holds BUT we may need to stop the block early if we run out of host registers (especially prevalent on x86)
+    //NOTE: maybe we just always find it in the "interpreter" way since thats the more textbook definition of a basic block
+    //and then in jit mode, if we run out of registers WHEN EMITTING we can split the basic block and error handle in the emitter
+
+    pub fn find_basic_block(self, addr: usize){
+        //first, is this address already in an existing basicblock?
+        let existing = self.Blocks.clone().extract_if(|k,v| k.contains(&addr)).collect::<Vec<_>>();
+        if existing.len() > 0{
+            //we requested a basic block starting at an adress within an existing basic block.
+            //for now dont do anything. we may desire additional behavior here later
+            return;
+        }
+
+        //TODO: we should probably search backwards a bit and check if we're starting a basic block at a proper address. but for now just assume we called it with a good address
+
+        let mut cur_block = BasicBlock{
+            valid: true,
+            base: addr,
+            instrs: Vec::new()
+        };
+
+        let mut cur_instr = decode();
+    }
+}
+
+
+//a basic block is a set of instructions.
+//these instructions may either be interpreted or emitted into a host buffer to be executed by the jit engine
+//this means that we must represent two possible 
+#[derive(Clone)]
+pub struct BasicBlock{
+    //is this block currently valid?
+    valid: bool,
+
+    //base address of the block
+    base: usize,
+
+    //each instruction in a basic block is actually a pointer to that opcode in the global instruction translation cache (ITC)
+    instrs: Vec<Rc<Instruction<Cpu>>>,
+
+}
