@@ -1,9 +1,36 @@
 use core::fmt;
 use std::hash::Hash;
 
-use proc_bitfield::bitfield;
+//use proc_bitfield::bitfield;
 
-pub struct disasembler {
+pub static INSTR_WHICH_END_BASIC_BLOCK: [opcode; 24] = [
+    opcode::J,
+    opcode::JAL,
+    opcode::BC,
+    opcode::BCF,
+    opcode::BCFL,
+    opcode::BCT,
+    opcode::BCTL,
+    opcode::BEQ,
+    opcode::BEQL,
+    opcode::BGEZ,
+    opcode::BGEZAL,
+    opcode::BGEZALL,
+    opcode::BGEZL,
+    opcode::BGTZ,
+    opcode::BGTZL,
+    opcode::BLEZ,
+    opcode::BLEZL,
+    opcode::BLTZ,
+    opcode::BLTZAL,
+    opcode::BLTZALL,
+    opcode::BLTZI,
+    opcode::BNE,
+    opcode::BNEL,
+    opcode::ERET,
+];
+
+/*pub struct disasembler {
     operating_mode: OperatingMode,
     sixty_four_bit: bool,
     cop1_enable: bool,
@@ -12,25 +39,29 @@ enum OperatingMode {
     User,
     Supervisor,
     Kernel,
-}
+}*/
 
-pub struct Cpu {}
+//hm.
+pub trait Cpu: std::io::Write + std::io::Read {
+    fn get_reg(&mut self, reg: GPR) -> Result<u64, std::io::Error>;
+    fn set_reg(&mut self, reg: GPR) -> Result<u64, std::io::Error>;
+}
 
 //this struct defines a single MIPS op.
 //it contains the original bytes,
 //an easily parseable enum for what op it is
 //and a string mnemonic
-//#[derive(Hash)]
-pub struct Instruction<Cpu> {
+#[derive(Clone)]
+pub struct Instruction {
     pub bytes: [u8; 4],
     pub opcode: opcode,
     pub sources: [Option<source>; 3],
     pub dest: Option<dest>,
-    pub operation: Box<dyn FnMut(&mut Cpu)>,
-    //pub operation: fn(&mut Cpu),
+    //pub operation: Box<dyn FnMut(&'a T) + 'a>,
+    pub operation: fn(&mut dyn Cpu),
     pub machine_code: Vec<u8>,
 }
-impl Hash for Instruction<Cpu> {
+impl Hash for Instruction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.bytes.hash(state);
         self.opcode.hash(state);
@@ -39,7 +70,7 @@ impl Hash for Instruction<Cpu> {
     }
 }
 
-impl std::fmt::Display for Instruction<Cpu> {
+impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
@@ -56,6 +87,7 @@ impl std::fmt::Display for Instruction<Cpu> {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+#[allow(non_camel_case_types)]
 pub enum InstructionFormat {
     I_t,
     J_t,
@@ -85,6 +117,7 @@ pub enum DisasemblerError<'a> {
 }
 
 #[derive(Debug, Clone, Copy, Hash)]
+#[allow(non_camel_case_types)]
 pub enum source {
     GPR(GPR),
     CR(cop0reg),
@@ -92,6 +125,7 @@ pub enum source {
     IMM(u64),
 }
 #[derive(Debug, Clone, Copy, Hash)]
+#[allow(non_camel_case_types)]
 pub enum dest {
     GPR(GPR),
     CR(cop0reg),
@@ -309,7 +343,6 @@ impl From<GPR> for u8 {
             GPR::sp => 29,
             GPR::fp => 30,
             GPR::ra => 31,
-            _ => panic!("bad value"),
         };
     }
 }
@@ -386,6 +419,7 @@ impl From<u8> for GPR {
 31 — Reserved for future use
 */
 #[derive(Debug, Clone, Copy, Hash)]
+#[allow(non_snake_case, non_camel_case_types)]
 pub enum cop0reg {
     Index,    //32 bit
     Random,   //32 bit
@@ -417,8 +451,10 @@ pub enum cop0reg {
             //31 — Reserved for future use
 }
 
+/*
 //make this indexable by an enum of all the registers it contains. impl Index and IndexMut traits
 #[derive(Default)]
+#[allow(non_snake_case, non_camel_case_types)]
 pub struct cop0 {
     pub Index: u32,    //32 bit
     pub Random: u32,   //32 bit
@@ -448,13 +484,14 @@ pub struct cop0 {
     pub TagLo: TagLo_reg, //32 bitfield
     //this is just always 0??
     pub TagHi: u32,    //32 bitfield
-    pub ErrorEPC: u64, //64 (32?)*/
+    pub ErrorEPC: u64, //64 (32?)
 }
 
 //status reg
+#[allow(non_snake_case)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case,non_camel_case_types)]
     pub struct status_reg(pub u32): Debug, FromRaw, IntoRaw, DerefRaw{
         pub CU: u8 @ 28..=31,
         pub RP: bool @ 27,
@@ -484,9 +521,10 @@ bitfield! {
 }
 
 //cause register
+#[allow(non_snake_case)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case,non_camel_case_types)]
     pub struct cause_reg(pub u32): Debug, FromRaw, IntoRaw, DerefRaw{
         pub BD: bool @ 31,
         //bit 30 is 0
@@ -500,9 +538,10 @@ bitfield! {
 }
 
 //PRId register
+#[allow(non_snake_case)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case,non_camel_case_types)]
     pub struct PRId_reg(pub u32): Debug, FromRaw, IntoRaw, DerefRaw{
         //upper 16 are zeroed
         pub Imp: u8 @ 8 ..= 15,
@@ -511,6 +550,7 @@ bitfield! {
     }
 }
 //Config register
+#[allow(non_snake_case, non_camel_case_types)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
     #[allow(non_snake_case)]
@@ -528,6 +568,7 @@ bitfield! {
 
 //this reg might be important later.
 //XContext register
+#[allow(non_snake_case, non_camel_case_types)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
     #[allow(non_snake_case)]
@@ -540,6 +581,7 @@ bitfield! {
 }
 
 //TagLo register
+#[allow(non_snake_case, non_camel_case_types)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
     #[allow(non_snake_case)]
@@ -556,9 +598,10 @@ bitfield! {
 //all 0s all the time??
 
 //this controls our fp modes and assoc shit
+#[allow(non_snake_case)]
 bitfield! {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case,non_camel_case_types)]
     pub struct FP_control_reg(pub u64): Debug, FromRaw, IntoRaw, DerefRaw{
         //25 ..= 31
         pub FS: bool @ 24,
@@ -569,4 +612,4 @@ bitfield! {
         pub Flags: u8 @ 2 ..= 6,
         pub RM: u8 @ 0 ..= 1
     }
-}
+}*/
