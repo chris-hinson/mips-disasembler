@@ -29,37 +29,58 @@ pub static INSTR_WHICH_END_BASIC_BLOCK: [opcode; 24] = [
     opcode::BNEL,
     opcode::ERET,
 ];
-
 /*pub struct disasembler {
     operating_mode: OperatingMode,
     sixty_four_bit: bool,
     cop1_enable: bool,
 }
-enum OperatingMode {
+*/
+pub enum OperatingMode {
     User,
     Supervisor,
     Kernel,
-}*/
+}
+pub enum Xlen {
+    X32,
+    X64,
+}
 
 //hm.
 pub trait Cpu: std::io::Write + std::io::Read {
+    //fn get_xlen(&self) -> Xlen;
+    //fn get_operating_mode(&self) -> OperatingMode;
+    fn _64bit_enabled(&self) -> bool;
+
     fn get_reg(&mut self, reg: GPR) -> Result<u64, std::io::Error>;
-    fn set_reg(&mut self, reg: GPR) -> Result<u64, std::io::Error>;
+    fn set_reg(&mut self, reg: GPR, val: u64) -> Result<u64, std::io::Error>;
+    fn get_cop_reg(&mut self, cop_indx: u8, reg_indx: u8) -> Result<u64, std::io::Error>;
+    fn set_cop_reg(&mut self, cop_indx: u8, reg_indx: u8, val: u64) -> Result<u64, std::io::Error>;
+    fn throw_exception(&mut self, err: OpcodeExecutionError, delay_slot: bool) {}
+}
+pub enum OpcodeExecutionError {
+    IoError,
+    ArithmeticOverFlow,
+}
+impl From<std::io::Error> for OpcodeExecutionError {
+    fn from(_value: std::io::Error) -> Self {
+        return OpcodeExecutionError::IoError;
+    }
 }
 
 //this struct defines a single MIPS op.
 //it contains the original bytes,
 //an easily parseable enum for what op it is
 //and a string mnemonic
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Instruction {
     pub bytes: [u8; 4],
     pub opcode: opcode,
     pub sources: [Option<source>; 3],
     pub dest: Option<dest>,
     //pub operation: Box<dyn FnMut(&'a T) + 'a>,
-    pub operation: fn(&mut dyn Cpu),
-    pub machine_code: Vec<u8>,
+    pub operation: fn(&mut dyn Cpu, Instruction),
+    //pub machine_code: Vec<u8>,
+    pub delay_slot: bool,
 }
 impl Hash for Instruction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -74,7 +95,7 @@ impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "[{:x},{:x},{:x},{:x}]\n{:?}\n{:?}\n{:?}\nfunctional closure and machine code omitted",
+            "[{:x},{:x},{:x},{:x}]\n{:?}\n{:?}\n{:?}\nis delay slot?:{}\nfunctional closure and machine code omitted",
             self.bytes[0],
             self.bytes[1],
             self.bytes[2],
@@ -82,6 +103,7 @@ impl std::fmt::Display for Instruction {
             self.opcode,
             self.sources,
             self.dest,
+            self.delay_slot
         )
     }
 }
@@ -102,14 +124,20 @@ pub enum DisasemblerError<'a> {
     InvOp,
     Lookup64(
         &'a (
-            [Result<(opcode, InstructionFormat), DisasemblerError<'a>>; 64],
+            [Result<
+                (opcode, InstructionFormat, fn(&mut dyn Cpu, Instruction)),
+                DisasemblerError<'a>,
+            >; 64],
             usize,
             usize,
         ),
     ),
     Lookup32(
         &'a (
-            [Result<(opcode, InstructionFormat), DisasemblerError<'a>>; 32],
+            [Result<
+                (opcode, InstructionFormat, fn(&mut dyn Cpu, Instruction)),
+                DisasemblerError<'a>,
+            >; 32],
             usize,
             usize,
         ),
@@ -124,6 +152,33 @@ pub enum source {
     FPR(usize),
     IMM(u64),
 }
+impl From<source> for GPR {
+    fn from(value: source) -> Self {
+        match value {
+            source::GPR(v) => v,
+            source::CR(_v) => panic!("bad conversion"),
+            source::FPR(_v) => panic!("bad conversion"),
+            source::IMM(_i) => panic!("bad conversion"),
+        }
+    }
+}
+impl From<source> for u64 {
+    fn from(value: source) -> Self {
+        match value {
+            source::GPR(_v) => {
+                panic!("bad conversion")
+            }
+            source::CR(_v) => {
+                panic!("bad conversion")
+            }
+            source::FPR(_v) => {
+                panic!("bad conversion")
+            }
+            source::IMM(i) => i,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash)]
 #[allow(non_camel_case_types)]
 pub enum dest {
