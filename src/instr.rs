@@ -46,7 +46,7 @@ pub enum Xlen {
 }
 
 //hm.
-pub trait Cpu: std::io::Write + std::io::Read {
+pub trait Cpu {
     //fn get_xlen(&self) -> Xlen;
     //fn get_operating_mode(&self) -> OperatingMode;
     fn _64bit_enabled(&self) -> bool;
@@ -56,6 +56,9 @@ pub trait Cpu: std::io::Write + std::io::Read {
     fn get_cop_reg(&mut self, cop_indx: u8, reg_indx: u8) -> Result<u64, std::io::Error>;
     fn set_cop_reg(&mut self, cop_indx: u8, reg_indx: u8, val: u64) -> Result<u64, std::io::Error>;
     fn throw_exception(&mut self, err: OpcodeExecutionError, delay_slot: bool) {}
+
+    fn read(&self, addr: usize, len: usize) -> std::io::Result<Vec<u8>>;
+    fn write(&mut self, addr: usize, bytes: &[u8]) -> std::io::Result<usize>;
 }
 pub enum OpcodeExecutionError {
     IoError,
@@ -185,6 +188,17 @@ pub enum dest {
     GPR(GPR),
     CR(cop0reg),
     FPR(usize),
+}
+
+impl From<dest> for GPR {
+    fn from(value: dest) -> Self {
+        match value {
+            dest::GPR(v) => v,
+            _ => {
+                panic!("cannot convert non-gpr variant to GPR")
+            }
+        }
+    }
 }
 
 #[allow(non_camel_case_types)]
@@ -362,6 +376,45 @@ pub enum GPR {
     sp,
     fp,
     ra,
+}
+impl std::fmt::Display for GPR {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match *self {
+            GPR::zero => "zero",
+            GPR::at => "at",
+            GPR::v0 => "v0",
+            GPR::v1 => "v1",
+            GPR::a0 => "a0",
+            GPR::a1 => "a1",
+            GPR::a2 => "a2",
+            GPR::a3 => "a3",
+            GPR::t0 => "t0",
+            GPR::t1 => "t1",
+            GPR::t2 => "t2",
+            GPR::t3 => "t3",
+            GPR::t4 => "t4",
+            GPR::t5 => "t5",
+            GPR::t6 => "t6",
+            GPR::t7 => "t7",
+            GPR::s0 => "s0",
+            GPR::s1 => "s1",
+            GPR::s2 => "s2",
+            GPR::s3 => "s3",
+            GPR::s4 => "s4",
+            GPR::s5 => "s5",
+            GPR::s6 => "s6",
+            GPR::s7 => "s7",
+            GPR::t8 => "t8",
+            GPR::t9 => "t9",
+            GPR::k0 => "k0",
+            GPR::k1 => "k1",
+            GPR::gp => "gp",
+            GPR::sp => "sp",
+            GPR::fp => "fp",
+            GPR::ra => "ra",
+        };
+        write!(f, "{}", str)
+    }
 }
 impl From<GPR> for u8 {
     fn from(val: GPR) -> Self {

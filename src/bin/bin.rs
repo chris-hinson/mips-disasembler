@@ -1,4 +1,4 @@
-#![feature(hash_extract_if)]
+/*#![feature(hash_extract_if)]
 
 use disas;
 use disas::instr::{OperatingMode, Xlen};
@@ -93,3 +93,4 @@ pub fn main() {
         }
     }
 }
+*/

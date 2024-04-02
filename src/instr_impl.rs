@@ -83,7 +83,12 @@ pub fn xori(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
 }
 pub fn lui(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let mut imm: u64 = (inst.sources[1].unwrap().into());
+    imm = (imm as u16 as u64) << 16;
+    if cpu._64bit_enabled() {
+        imm = imm as i32 as i64 as u64;
+    }
+    cpu.set_reg(inst.dest.unwrap().into(), imm);
 }
 pub fn beql(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
