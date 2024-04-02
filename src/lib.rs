@@ -149,6 +149,7 @@ impl Disasembler {
         //grab some bytes and turn them into an instruction
         let mut cur_bytes = (self.Reader)(&addr);
         let mut cur_instr = self.decode(cur_bytes, false);
+        addr += 4;
 
         //did we just decode a block ending instruction?
         while !INSTR_WHICH_END_BASIC_BLOCK.contains(&cur_instr.opcode) {
