@@ -1,3 +1,10 @@
+//running notes:
+
+/*
+LW and SW implemented for good cases, but both have a huge variety of possible exceptions. these need to be implemented at some point
+
+*/
+
 use crate::{
     instr::{dest, source, Instruction, OpcodeExecutionError::*},
     Cpu,
@@ -56,7 +63,13 @@ pub fn beq(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
 }
 pub fn bne(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let mut offset: u64 = inst.sources[1].unwrap().into();
+    //let delay_slot =
+    //FUCKFUCKFUCKFUCKFUCKFUCKFUCKFUCKFUCKFUCK
+    //how do we get the address of the delay slot chris? huh? huh chris? how!!!
+
+    let cond =
+        cpu.get_reg(inst.sources[0].unwrap().into()) == cpu.get_reg(inst.dest.unwrap().into());
 }
 pub fn blez(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
@@ -74,10 +87,18 @@ pub fn sltiu(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
 }
 pub fn andi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let mut imm: u64 = (inst.sources[1].unwrap().into());
+    imm = (imm as u16) as u64;
+    let reg_val = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap();
+    let result = reg_val & imm;
+    cpu.set_reg(inst.dest.unwrap().into(), result);
 }
 pub fn ori(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let mut imm: u64 = (inst.sources[1].unwrap().into());
+    imm = (imm as u16) as u64;
+    let reg_val = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap();
+    let result = reg_val | imm;
+    cpu.set_reg(inst.dest.unwrap().into(), result);
 }
 pub fn xori(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
@@ -124,7 +145,23 @@ pub fn lwl(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
 }
 pub fn lw(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let mut offset: u64 = inst.sources[1].unwrap().into();
+    if !cpu._64bit_enabled() {
+        offset = offset as u16 as i16 as i32 as u64
+    } else {
+        offset = offset as u16 as i16 as i64 as u64
+    }
+    let base = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap();
+    let addr = (base as i64 + offset as i64) as u64;
+
+    //let bytes: &[u8] = &(cpu.get_reg(inst.dest.unwrap().into()).unwrap() as u32).to_le_bytes();
+
+    let res = u32::from_be_bytes(
+        cpu.read(addr as usize, 4).unwrap()[0..4]
+            .try_into()
+            .expect("bruh"),
+    );
+    cpu.set_reg(inst.dest.unwrap().into(), res as u64);
 }
 pub fn lbu(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
@@ -148,7 +185,18 @@ pub fn swl(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
 }
 pub fn sw(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let mut offset: u64 = inst.sources[1].unwrap().into();
+    if !cpu._64bit_enabled() {
+        offset = offset as u16 as i16 as i32 as u64
+    } else {
+        offset = offset as u16 as i16 as i64 as u64
+    }
+    let base = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap();
+    let addr = (base as i64 + offset as i64) as u64;
+
+    let bytes: &[u8] = &(cpu.get_reg(inst.dest.unwrap().into()).unwrap() as u32).to_le_bytes();
+
+    cpu.write(addr as usize, bytes);
 }
 pub fn sdl(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")

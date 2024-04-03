@@ -1,5 +1,5 @@
 use core::fmt;
-use std::hash::Hash;
+use std::{fmt::write, hash::Hash};
 
 //use proc_bitfield::bitfield;
 
@@ -98,7 +98,7 @@ impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "[{:x},{:x},{:x},{:x}]\n{:?}\n{:?}\n{:?}\nis delay slot?:{}\nfunctional closure and machine code omitted",
+            "[{:02x},{:02x},{:02x},{:02x}]\n{:?}\nsources:{:?}\ndest:{:?}\nis delay slot?:{}\nfunctional closure and machine code omitted",
             self.bytes[0],
             self.bytes[1],
             self.bytes[2],
@@ -154,6 +154,16 @@ pub enum source {
     CR(cop0reg),
     FPR(usize),
     IMM(u64),
+}
+impl std::fmt::Display for source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            source::GPR(v) => write!(f, "{:?}", v),
+            source::CR(v) => write!(f, "{:?}", v),
+            source::FPR(v) => write!(f, "{:?}", v),
+            source::IMM(i) => write!(f, "{:#x}", i),
+        }
+    }
 }
 impl From<source> for GPR {
     fn from(value: source) -> Self {

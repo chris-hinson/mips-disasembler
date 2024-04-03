@@ -100,7 +100,7 @@ static copzero_lookup: ([Result<(instr::opcode,InstructionFormat,fn(&mut dyn Cpu
 0);
 
 #[allow(non_snake_case)]
-pub struct Disasembler {
+pub struct Disasembler<'a> {
     //hashset of thus far decoded instructions
     //this is the "global" instruction translation cache
     //we hash the raw bits of an instruction and equate that with a fully formed Instruction struct
@@ -113,11 +113,32 @@ pub struct Disasembler {
 
     //the disasembler needs some way to get bytes out of rom.
     //since we are explicitly dealing with instructions, handle turning it into a u32 before it gets here
-    pub Reader: Box<dyn FnMut(&usize) -> u32>,
+    pub Reader: Box<dyn FnMut(usize) -> u32 + 'a>,
+    pub data: *mut Vec<u8>,
+    pub data_base_addr: usize,
 }
 
-impl Disasembler {
+impl<'a> Disasembler<'a> {
     //pub fn test_fn_addi(_cpu: &mut (dyn Cpu)) {}
+
+    pub fn new(data: *mut Vec<u8>, base_addr: usize) -> Self {
+        let mut s = Self {
+            ITC: HashMap::new(),
+            Blocks: HashMap::new(),
+            Reader: Box::new(|addr: usize| 0),
+            data,
+            data_base_addr: base_addr,
+        };
+        s.Reader = Box::new(move |addr: usize| unsafe {
+            u32::from_be_bytes(
+                s.data.as_mut().unwrap()[addr..(addr + 4)]
+                    .try_into()
+                    .expect("slice with incorrect length"),
+            )
+        });
+
+        s
+    }
 
     //finding a basic block differs in interpreter and JIT mode
     //in interpreter mode, a basic block is defined by as many instructions as you can go without hitting a control flow op
@@ -147,7 +168,7 @@ impl Disasembler {
         };
 
         //grab some bytes and turn them into an instruction
-        let mut cur_bytes = (self.Reader)(&addr);
+        let mut cur_bytes = (self.Reader)(addr);
         let mut cur_instr = self.decode(cur_bytes, false);
         addr += 4;
 
@@ -155,7 +176,7 @@ impl Disasembler {
         while !INSTR_WHICH_END_BASIC_BLOCK.contains(&cur_instr.opcode) {
             cur_block.instrs.push(cur_instr);
 
-            cur_bytes = (self.Reader)(&addr);
+            cur_bytes = (self.Reader)(addr);
             cur_instr = self.decode(cur_bytes, false);
             addr += 4;
         }
@@ -164,7 +185,7 @@ impl Disasembler {
         if cur_instr.opcode != ERET {
             //push the last instr we decoded before we figure out our block was over
             cur_block.instrs.push(cur_instr);
-            cur_bytes = (self.Reader)(&addr);
+            cur_bytes = (self.Reader)(addr);
             cur_instr = self.decode(cur_bytes, true);
             cur_block.instrs.push(cur_instr);
 
@@ -176,15 +197,6 @@ impl Disasembler {
 
         self.Blocks.insert(cur_block.base..addr, cur_block);
     }
-
-    /*pub fn ITC_fetch_or_decode_and_insert(
-        &mut self,
-        bytes: u32,
-    ) -> &Instruction<'disas, dyn Cpu + 'disas> {
-        let itc_binding = self.ITC.entry(bytes);
-        let v = itc_binding.or_insert(Self::decode(bytes));
-        v
-        */
 
     //pub fn decode(&mut self, raw: u32) -> &Instruction<'disas, dyn Cpu + 'disas> {
     pub fn decode(&mut self, raw: u32, delay_slot: bool) -> Rc<Instruction> {
