@@ -5,6 +5,8 @@ pub mod instr_impl;
 
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 
 use instr::opcode::*;
 use instr::source;
@@ -100,7 +102,7 @@ static copzero_lookup: ([Result<(instr::opcode,InstructionFormat,fn(&mut dyn Cpu
 0);
 
 #[allow(non_snake_case)]
-pub struct Disasembler<'a> {
+pub struct Disasembler {
     //hashset of thus far decoded instructions
     //this is the "global" instruction translation cache
     //we hash the raw bits of an instruction and equate that with a fully formed Instruction struct
@@ -113,29 +115,41 @@ pub struct Disasembler<'a> {
 
     //the disasembler needs some way to get bytes out of rom.
     //since we are explicitly dealing with instructions, handle turning it into a u32 before it gets here
-    pub Reader: Box<dyn FnMut(usize) -> u32 + 'a>,
+    //this approach was fine-ish, but rendered a lot of implicit logic, a raw pointer, and an infectious implicit lifetime.
+    /*pub Reader: Box<dyn FnMut(usize) -> u32 + 'a>,
     pub data: *mut Vec<u8>,
-    pub data_base_addr: usize,
+    pub data_base_addr: usize,*/
+    //instead, use a local mpsc channel pair to black box away the reads
+    //every packet over the reader represents a VA:instruction pair
+    pub Requester: Sender<u64>,
+    pub Reader: Receiver<(u64, u32)>,
 }
 
-impl<'a> Disasembler<'a> {
+impl Disasembler {
     //pub fn test_fn_addi(_cpu: &mut (dyn Cpu)) {}
 
-    pub fn new(data: *mut Vec<u8>, base_addr: usize) -> Self {
+    pub fn new(
+        data: *mut Vec<u8>,
+        base_addr: usize,
+        reader: Receiver<u32>,
+        requester: Sender<u64>,
+    ) -> Self {
         let mut s = Self {
             ITC: HashMap::new(),
             Blocks: HashMap::new(),
-            Reader: Box::new(|addr: usize| 0),
+            Reader: reader,
+            Requester: requester,
+            /*Reader: Box::new(|addr: usize| 0),
             data,
-            data_base_addr: base_addr,
+            data_base_addr: base_addr,*/
         };
-        s.Reader = Box::new(move |addr: usize| unsafe {
-            u32::from_be_bytes(
-                s.data.as_mut().unwrap()[addr..(addr + 4)]
-                    .try_into()
-                    .expect("slice with incorrect length"),
-            )
-        });
+        /*s.Reader = Box::new(move |addr: usize| unsafe {
+        u32::from_be_bytes(
+            s.data.as_mut().unwrap()[addr..(addr + 4)]
+                .try_into()
+                .expect("slice with incorrect length"),
+        )
+        });*/
 
         s
     }
@@ -147,11 +161,13 @@ impl<'a> Disasembler<'a> {
     //and then in jit mode, if we run out of registers WHEN EMITTING we can split the basic block and error handle in the emitter
 
     pub fn find_basic_block(&mut self, mut addr: usize) {
+        //let mut local_addr = addr - self.data_base_addr;
+
         //first, is this address already in an existing basicblock?
         let existing = self
             .Blocks
             .clone()
-            .extract_if(|k, _v| k.contains(&addr))
+            .extract_if(|k, _v| k.contains(&local_addr))
             .collect::<Vec<_>>();
         if existing.len() > 0 {
             //we requested a basic block starting at an adress within an existing basic block.
@@ -178,7 +194,7 @@ impl<'a> Disasembler<'a> {
 
             cur_bytes = (self.Reader)(addr);
             cur_instr = self.decode(cur_bytes, false);
-            addr += 4;
+            local_addr += 4;
         }
 
         //ADD THE DELAY SLOT INSTRUCTION
@@ -195,7 +211,10 @@ impl<'a> Disasembler<'a> {
             cur_block.instrs.push(cur_instr);
         }
 
-        self.Blocks.insert(cur_block.base..addr, cur_block);
+        self.Blocks.insert(
+            cur_block.base..(cur_block + cur_block.instrs.len() * 4),
+            cur_block,
+        );
     }
 
     //pub fn decode(&mut self, raw: u32) -> &Instruction<'disas, dyn Cpu + 'disas> {
@@ -290,6 +309,19 @@ impl<'a> Disasembler<'a> {
 
         return ret.clone();
     }
+
+    pub fn get_basic_block_at_addr(&self, addr: usize) -> Result<BasicBlock, &str> {
+        let existing = self
+            .Blocks
+            .clone()
+            .extract_if(|k, _v| k.contains(&addr))
+            .collect::<Vec<_>>();
+        if existing.len() > 0 {
+            Ok(existing[0].1.clone())
+        } else {
+            Err("no block at that address")
+        }
+    }
 }
 
 //a basic block is a set of instructions.
@@ -300,7 +332,7 @@ pub struct BasicBlock {
     //is this block currently valid?
     _valid: bool,
 
-    //base address of the block
+    //base address of the block THIS SHOULD BE THE VIRTUAL ADDRESS AS THE N64 SEES IT
     base: usize,
 
     //each instruction in a basic block is actually a pointer to that opcode in the global instruction translation cache (ITC)

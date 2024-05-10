@@ -51,8 +51,11 @@ pub trait Cpu {
     //fn get_operating_mode(&self) -> OperatingMode;
     fn _64bit_enabled(&self) -> bool;
 
-    fn get_reg(&mut self, reg: GPR) -> Result<u64, std::io::Error>;
+    fn get_reg(&self, reg: GPR) -> Result<u64, std::io::Error>;
     fn set_reg(&mut self, reg: GPR, val: u64) -> Result<u64, std::io::Error>;
+    fn get_pc(&self) -> u64;
+    fn set_pc(&mut self, new_pc: u64);
+
     fn get_cop_reg(&mut self, cop_indx: u8, reg_indx: u8) -> Result<u64, std::io::Error>;
     fn set_cop_reg(&mut self, cop_indx: u8, reg_indx: u8, val: u64) -> Result<u64, std::io::Error>;
     fn throw_exception(&mut self, err: OpcodeExecutionError, delay_slot: bool) {}

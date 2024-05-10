@@ -64,12 +64,15 @@ pub fn beq(cpu: &mut dyn Cpu, inst: Instruction) {
 }
 pub fn bne(cpu: &mut dyn Cpu, inst: Instruction) {
     let mut offset: u64 = inst.sources[1].unwrap().into();
-    //let delay_slot =
-    //FUCKFUCKFUCKFUCKFUCKFUCKFUCKFUCKFUCKFUCK
-    //how do we get the address of the delay slot chris? huh? huh chris? how!!!
+    let delay_slot = cpu.get_pc() + 4;
+    let target = delay_slot as i64 + offset as i64;
 
-    let cond =
-        cpu.get_reg(inst.sources[0].unwrap().into()) == cpu.get_reg(inst.dest.unwrap().into());
+    let take = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap()
+        != cpu.get_reg(inst.dest.unwrap().into()).unwrap();
+
+    if take {
+        cpu.set_pc(target as u64);
+    }
 }
 pub fn blez(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
@@ -253,7 +256,10 @@ pub fn sd(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
 }
 pub fn sll(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    let original_value = cpu.get_reg(inst.sources[1].unwrap().into()).unwrap();
+    let shamt: u64 = (inst.sources[2].unwrap().into());
+    let new_value: u64 = original_value << shamt;
+    cpu.set_reg(inst.dest.unwrap().into(), new_value as u64);
 }
 pub fn srl(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode not implemented")
