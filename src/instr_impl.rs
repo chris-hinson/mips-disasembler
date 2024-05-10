@@ -1,3 +1,5 @@
+#![allow(unused_variables)] // at the top of the file
+
 //running notes:
 
 /*

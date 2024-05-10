@@ -1,10 +1,9 @@
-#![feature(hash_extract_if)]
-
 pub mod instr;
 pub mod instr_impl;
 
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 
@@ -102,16 +101,18 @@ static copzero_lookup: ([Result<(instr::opcode,InstructionFormat,fn(&mut dyn Cpu
 0);
 
 #[allow(non_snake_case)]
+#[derive(Clone)]
 pub struct Disasembler {
     //hashset of thus far decoded instructions
     //this is the "global" instruction translation cache
     //we hash the raw bits of an instruction and equate that with a fully formed Instruction struct
     //TODO: hashing is overkill here. use a 2 or 3 tier linear cache that populates pages as we hit them (sparse array)
-    pub ITC: HashMap<u32, Rc<Instruction>>,
+    pub ITC: HashMap<u32, Arc<Instruction>>,
 
-    //NOTE: this may eventually be superceded by a fastmem implementation
-    //for now, we map address ranges to the basic block struct representing the instructions that lie there
-    pub Blocks: HashMap<std::ops::Range<usize>, BasicBlock>,
+    //basic blocks are indexed by their base address only.
+    //this DOES mean that we may at some point try and jump into the middle of an existing basic block and not realize
+    //but we really dont give a shit because we can just make a new basic block, and since all instructions are RCed, we can include instructions in multiple blocks
+    pub Blocks: HashMap<usize, BasicBlock>,
 
     //the disasembler needs some way to get bytes out of rom.
     //since we are explicitly dealing with instructions, handle turning it into a u32 before it gets here
@@ -119,22 +120,22 @@ pub struct Disasembler {
     /*pub Reader: Box<dyn FnMut(usize) -> u32 + 'a>,
     pub data: *mut Vec<u8>,
     pub data_base_addr: usize,*/
+
     //instead, use a local mpsc channel pair to black box away the reads
-    //every packet over the reader represents a VA:instruction pair
-    pub Requester: Sender<u64>,
-    pub Reader: Receiver<(u64, u32)>,
+    //request the bytes at a physical address via the requester sender, and await a u32 of the 4 byte instruction located at that address
+    //every packet over the reader represents a PA:instruction pair
+    pub Requester: Sender<u32>,
+    pub Reader: Receiver<u32>,
 }
 
 impl Disasembler {
     //pub fn test_fn_addi(_cpu: &mut (dyn Cpu)) {}
 
     pub fn new(
-        data: *mut Vec<u8>,
-        base_addr: usize,
+        requester: Sender<u32>,
         reader: Receiver<u32>,
-        requester: Sender<u64>,
     ) -> Self {
-        let mut s = Self {
+        let s = Self {
             ITC: HashMap::new(),
             Blocks: HashMap::new(),
             Reader: reader,
@@ -161,30 +162,24 @@ impl Disasembler {
     //and then in jit mode, if we run out of registers WHEN EMITTING we can split the basic block and error handle in the emitter
 
     pub fn find_basic_block(&mut self, mut addr: usize) {
-        //let mut local_addr = addr - self.data_base_addr;
+        
 
-        //first, is this address already in an existing basicblock?
-        let existing = self
-            .Blocks
-            .clone()
-            .extract_if(|k, _v| k.contains(&local_addr))
-            .collect::<Vec<_>>();
-        if existing.len() > 0 {
-            //we requested a basic block starting at an adress within an existing basic block.
-            //for now dont do anything. we may desire additional behavior here later
-            return;
-        }
-
-        //TODO: we should probably search backwards a bit and check if we're starting a basic block at a proper address. but for now just assume we called it with a good address
-
+        let base_addr = addr;
         let mut cur_block = BasicBlock {
             _valid: true,
             base: addr,
             instrs: Vec::new(),
         };
 
+        println!("[disas] starting to find basic block at addr {:#04x}",addr);
+
         //grab some bytes and turn them into an instruction
-        let mut cur_bytes = (self.Reader)(addr);
+        self.Requester.send(addr as u32).unwrap();
+        println!("[disas] requested addr {:#04x}",addr as u32);
+
+        let mut cur_bytes = self.Reader.recv().unwrap();
+        println!("[disas] received instruction at addr {:#04x}",addr as u32);
+
         let mut cur_instr = self.decode(cur_bytes, false);
         addr += 4;
 
@@ -192,13 +187,16 @@ impl Disasembler {
         while !INSTR_WHICH_END_BASIC_BLOCK.contains(&cur_instr.opcode) {
             cur_block.instrs.push(cur_instr);
 
-            cur_bytes = (self.Reader)(addr);
+            println!("[disas] requesting addr {:#04x}",addr as u32);
+            self.Requester.send(addr as u32).unwrap();
+            println!("[disas] received instruction at addr {:#04x}",addr as u32);
+            cur_bytes = self.Reader.recv().unwrap();
             cur_instr = self.decode(cur_bytes, false);
-            local_addr += 4;
+            addr += 4;
         }
 
         //ADD THE DELAY SLOT INSTRUCTION
-        if cur_instr.opcode != ERET {
+        /*if cur_instr.opcode != ERET {
             //push the last instr we decoded before we figure out our block was over
             cur_block.instrs.push(cur_instr);
             cur_bytes = (self.Reader)(addr);
@@ -206,19 +204,23 @@ impl Disasembler {
             cur_block.instrs.push(cur_instr);
 
             //TODO:HANDLE DELAY SLOT FUCKERY(nested delay slots)
-        } else {
+        } else {*/
             //push the last instr we decoded before we figure out our block was over
-            cur_block.instrs.push(cur_instr);
-        }
+        cur_block.instrs.push(cur_instr);
+        //}
+
+        //release the system
+        println!("[disas] sending stop byte");
+        self.Requester.send(0xFFFF_FFFF).unwrap();
 
         self.Blocks.insert(
-            cur_block.base..(cur_block + cur_block.instrs.len() * 4),
-            cur_block,
+            base_addr,
+            cur_block
         );
     }
 
     //pub fn decode(&mut self, raw: u32) -> &Instruction<'disas, dyn Cpu + 'disas> {
-    pub fn decode(&mut self, raw: u32, delay_slot: bool) -> Rc<Instruction> {
+    pub fn decode(&mut self, raw: u32, delay_slot: bool) -> Arc<Instruction> {
         let bytes: [u8; 4] = raw.to_be_bytes();
 
         let entry = self.ITC.entry(raw);
@@ -297,7 +299,7 @@ impl Disasembler {
         let function = op.as_ref().unwrap().2;
 
         //let local: fn(&mut dyn Cpu, Instruction) = ;
-        let ret = entry.or_insert(Rc::new(Instruction {
+        let ret = entry.or_insert(Arc::new(Instruction {
             bytes,
             opcode: op.as_ref().unwrap().0,
             sources,
@@ -310,16 +312,15 @@ impl Disasembler {
         return ret.clone();
     }
 
-    pub fn get_basic_block_at_addr(&self, addr: usize) -> Result<BasicBlock, &str> {
-        let existing = self
-            .Blocks
-            .clone()
-            .extract_if(|k, _v| k.contains(&addr))
-            .collect::<Vec<_>>();
-        if existing.len() > 0 {
-            Ok(existing[0].1.clone())
-        } else {
-            Err("no block at that address")
+    pub fn get_basic_block_at_addr(&mut self, addr: usize) -> Result<BasicBlock, &str> {
+        let existing = self.Blocks.entry(addr);
+        match existing{
+            std::collections::hash_map::Entry::Occupied(v) => return Ok(v.get().clone()),
+            std::collections::hash_map::Entry::Vacant(_) =>
+            {
+                self.find_basic_block(addr);
+                return Ok(self.Blocks.get(&addr).unwrap().clone());
+            },
         }
     }
 }
@@ -332,9 +333,9 @@ pub struct BasicBlock {
     //is this block currently valid?
     _valid: bool,
 
-    //base address of the block THIS SHOULD BE THE VIRTUAL ADDRESS AS THE N64 SEES IT
+    //base address of the block: PHYSICAL ADDRESS
     base: usize,
 
     //each instruction in a basic block is actually a pointer to that opcode in the global instruction translation cache (ITC)
-    pub instrs: Vec<Rc<Instruction>>,
+    pub instrs: Vec<Arc<Instruction>>,
 }
