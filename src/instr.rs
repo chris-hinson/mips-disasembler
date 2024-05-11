@@ -3,9 +3,11 @@ use std::{fmt::write, hash::Hash};
 
 //use proc_bitfield::bitfield;
 
-pub static INSTR_WHICH_END_BASIC_BLOCK: [opcode; 24] = [
+pub static INSTR_WHICH_END_BASIC_BLOCK: [opcode; 26] = [
     opcode::J,
+    opcode::JR,
     opcode::JAL,
+    opcode::JALR,
     opcode::BC,
     opcode::BCF,
     opcode::BCFL,
@@ -101,12 +103,12 @@ impl std::fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
-            "[{:02x},{:02x},{:02x},{:02x}]\n{:?}\nsources:{:?}\ndest:{:?}\nis delay slot?:{}\nfunctional closure and machine code omitted",
+            "{:?}:\n\t[{:02x},{:02x},{:02x},{:02x}]\n\tsources:{:?}\n\tdest:{:?}\n\tis delay slot?:{}\n",
+            self.opcode,
             self.bytes[0],
             self.bytes[1],
             self.bytes[2],
             self.bytes[3],
-            self.opcode,
             self.sources,
             self.dest,
             self.delay_slot

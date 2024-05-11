@@ -94,3 +94,18 @@ pub fn main() {
     }
 }
 */
+
+use disas;
+use std::io::{self, BufRead};
+
+fn main() {
+    println!("interactive disasembler. type a u32 and hit enter.");
+    loop {
+        let stdin = io::stdin();
+        for line in stdin.lock().lines() {
+            let bytes: u32 = u32::from_str_radix(&line.unwrap(), 16).unwrap();
+            let instr = disas::decode(bytes, false);
+            println!("{}", instr);
+        }
+    }
+}

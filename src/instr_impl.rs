@@ -56,13 +56,13 @@ pub fn addi(cpu: &mut dyn Cpu, inst: Instruction) {
 }
 
 pub fn j(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode j not implemented")
 }
 pub fn jal(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode jal not implemented")
 }
 pub fn beq(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode beq not implemented")
 }
 pub fn bne(cpu: &mut dyn Cpu, inst: Instruction) {
     let mut offset: u64 = inst.sources[1].unwrap().into();
@@ -77,19 +77,19 @@ pub fn bne(cpu: &mut dyn Cpu, inst: Instruction) {
     }
 }
 pub fn blez(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode blez not implemented")
 }
 pub fn bgtz(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bgtz not implemented")
 }
 pub fn addiu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode addiu not implemented")
 }
 pub fn slti(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode slti not implemented")
 }
 pub fn sltiu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sltiu not implemented")
 }
 pub fn andi(cpu: &mut dyn Cpu, inst: Instruction) {
     let mut imm: u64 = (inst.sources[1].unwrap().into());
@@ -106,7 +106,7 @@ pub fn ori(cpu: &mut dyn Cpu, inst: Instruction) {
     cpu.set_reg(inst.dest.unwrap().into(), result);
 }
 pub fn xori(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode xori not implemented")
 }
 pub fn lui(cpu: &mut dyn Cpu, inst: Instruction) {
     let mut imm: u64 = (inst.sources[1].unwrap().into());
@@ -117,37 +117,37 @@ pub fn lui(cpu: &mut dyn Cpu, inst: Instruction) {
     cpu.set_reg(inst.dest.unwrap().into(), imm);
 }
 pub fn beql(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode beql not implemented")
 }
 pub fn bnel(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bnel not implemented")
 }
 pub fn blezl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode blezl not implemented")
 }
 pub fn bgtzl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bgtzl not implemented")
 }
 pub fn daddi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode daddi not implemented")
 }
 pub fn daddiu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode daddiu not implemented")
 }
 pub fn ldl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ldl not implemented")
 }
 pub fn ldr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ldr not implemented")
 }
 pub fn lb(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lb not implemented")
 }
 pub fn lh(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lh not implemented")
 }
 pub fn lwl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lwl not implemented")
 }
 pub fn lw(cpu: &mut dyn Cpu, inst: Instruction) {
     let mut offset: u64 = inst.sources[1].unwrap().into();
@@ -169,25 +169,25 @@ pub fn lw(cpu: &mut dyn Cpu, inst: Instruction) {
     cpu.set_reg(inst.dest.unwrap().into(), res as u64);
 }
 pub fn lbu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lbu not implemented")
 }
 pub fn lhu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lhu not implemented")
 }
 pub fn lwr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lwr not implemented")
 }
 pub fn lwu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lwu not implemented")
 }
 pub fn sb(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sb not implemented")
 }
 pub fn sh(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sh not implemented")
 }
 pub fn swl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode swl not implemented")
 }
 pub fn sw(cpu: &mut dyn Cpu, inst: Instruction) {
     let mut offset: u64 = inst.sources[1].unwrap().into();
@@ -204,58 +204,58 @@ pub fn sw(cpu: &mut dyn Cpu, inst: Instruction) {
     cpu.write(addr as usize, bytes);
 }
 pub fn sdl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sdl not implemented")
 }
 pub fn sdr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sdr not implemented")
 }
 pub fn swr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode swr not implemented")
 }
 pub fn cache(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode cache not implemented")
 }
 pub fn ll(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ll not implemented")
 }
 pub fn lwc1(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lwc1 not implemented")
 }
 pub fn lwc2(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lwc2 not implemented")
 }
 pub fn lld(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode lld not implemented")
 }
 pub fn ldc1(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ldc1 not implemented")
 }
 pub fn ldc2(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ldc2 not implemented")
 }
 pub fn ld(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ld not implemented")
 }
 pub fn sc(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sc not implemented")
 }
 pub fn swc1(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode swc1 not implemented")
 }
 pub fn swc2(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode swc2 not implemented")
 }
 pub fn scd(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode scd not implemented")
 }
 pub fn sdc1(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sdc1 not implemented")
 }
 pub fn sdc2(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sdc2 not implemented")
 }
 pub fn sd(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sd not implemented")
 }
 pub fn sll(cpu: &mut dyn Cpu, inst: Instruction) {
     let original_value = cpu.get_reg(inst.sources[1].unwrap().into()).unwrap();
@@ -264,245 +264,245 @@ pub fn sll(cpu: &mut dyn Cpu, inst: Instruction) {
     cpu.set_reg(inst.dest.unwrap().into(), new_value as u64);
 }
 pub fn srl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode srl not implemented")
 }
 pub fn sra(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sra not implemented")
 }
 pub fn sllv(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sllv not implemented")
 }
 pub fn srlv(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode srlv not implemented")
 }
 pub fn srav(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode srav not implemented")
 }
 pub fn jr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode jr not implemented")
 }
 pub fn jalr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode jalr not implemented")
 }
 pub fn syscall(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode syscall not implemented")
 }
 pub fn break_(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode break_ not implemented")
 }
 pub fn sync(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sync not implemented")
 }
 pub fn mfhi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mfhi not implemented")
 }
 pub fn mthi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mthi not implemented")
 }
 pub fn mflo(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mflo not implemented")
 }
 pub fn mtlo(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mtlo not implemented")
 }
 pub fn dsllv(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsllv not implemented")
 }
 pub fn dsrlv(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsrlv not implemented")
 }
 pub fn dsrav(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsrav not implemented")
 }
 pub fn mult(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mult not implemented")
 }
 pub fn multu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode multu not implemented")
 }
 pub fn div(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode div not implemented")
 }
 pub fn divu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode divu not implemented")
 }
 pub fn dmult(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dmult not implemented")
 }
 pub fn dmultu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dmultu not implemented")
 }
 pub fn ddiv(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ddiv not implemented")
 }
 pub fn ddivu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ddivu not implemented")
 }
 pub fn addu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode addu not implemented")
 }
 pub fn sub(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sub not implemented")
 }
 pub fn subu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode subu not implemented")
 }
 pub fn and(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode and not implemented")
 }
 pub fn or(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode or not implemented")
 }
 pub fn xor(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode xor not implemented")
 }
 pub fn nor(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode nor not implemented")
 }
 pub fn slt(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode slt not implemented")
 }
 pub fn sltu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode sltu not implemented")
 }
 pub fn dadd(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dadd not implemented")
 }
 pub fn daddu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode daddu not implemented")
 }
 pub fn dsub(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsub not implemented")
 }
 pub fn dsubu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsubu not implemented")
 }
 pub fn tge(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tge not implemented")
 }
 pub fn tgeu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tgeu not implemented")
 }
 pub fn tlt(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tlt not implemented")
 }
 pub fn tltu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tltu not implemented")
 }
 pub fn teq(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode teq not implemented")
 }
 pub fn tne(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tne not implemented")
 }
 pub fn dsll(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsll not implemented")
 }
 pub fn dsrl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsrl not implemented")
 }
 pub fn dsra(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsra not implemented")
 }
 pub fn dsll32(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsll32 not implemented")
 }
 pub fn dsrl32(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsrl32 not implemented")
 }
 pub fn dsra32(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dsra32 not implemented")
 }
 pub fn bltz(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bltz not implemented")
 }
 pub fn bgez(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bgez not implemented")
 }
 pub fn bltzi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bltzi not implemented")
 }
 pub fn bgezl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bgezl not implemented")
 }
 pub fn tgei(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tgei not implemented")
 }
 pub fn tgeiu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tgeiu not implemented")
 }
 pub fn tlti(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tlti not implemented")
 }
 pub fn tltiu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tltiu not implemented")
 }
 pub fn teqi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode teqi not implemented")
 }
 pub fn tnei(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tnei not implemented")
 }
 pub fn bltzal(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bltzal not implemented")
 }
 pub fn bgezal(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bgezal not implemented")
 }
 pub fn bltzall(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bltzall not implemented")
 }
 pub fn bgezall(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bgezall not implemented")
 }
 pub fn mf(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mf not implemented")
 }
 pub fn dmf(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dmf not implemented")
 }
 pub fn cf(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode cf not implemented")
 }
 pub fn mt(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode mt not implemented")
 }
 pub fn dmt(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode dmt not implemented")
 }
 pub fn ct(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode ct not implemented")
 }
 pub fn bc(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bc not implemented")
 }
 pub fn copz(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode copz not implemented")
 }
 pub fn bcf(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bcf not implemented")
 }
 pub fn bct(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bct not implemented")
 }
 pub fn bcfl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bcfl not implemented")
 }
 pub fn bctl(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode bctl not implemented")
 }
 pub fn tlbr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tlbr not implemented")
 }
 pub fn tlbwi(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tlbwi not implemented")
 }
 pub fn tlbwr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tlbwr not implemented")
 }
 pub fn tlbp(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode tlbp not implemented")
 }
 pub fn eret(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode not implemented")
+    unimplemented!("opcode eret not implemented")
 }

@@ -3,9 +3,9 @@ pub mod instr_impl;
 
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
+use std::sync::Arc;
 
 use instr::opcode::*;
 use instr::source;
@@ -100,242 +100,116 @@ static copzero_lookup: ([Result<(instr::opcode,InstructionFormat,fn(&mut dyn Cpu
 0b0000_0000_0000_0000_0000_0000_0011_1111,
 0);
 
-#[allow(non_snake_case)]
-#[derive(Clone)]
-pub struct Disasembler {
-    //hashset of thus far decoded instructions
-    //this is the "global" instruction translation cache
-    //we hash the raw bits of an instruction and equate that with a fully formed Instruction struct
-    //TODO: hashing is overkill here. use a 2 or 3 tier linear cache that populates pages as we hit them (sparse array)
-    pub ITC: HashMap<u32, Arc<Instruction>>,
+//pub fn decode(&mut self, raw: u32) -> &Instruction<'disas, dyn Cpu + 'disas> {
+pub fn decode(raw: u32, delay_slot: bool) -> Instruction {
+    let bytes: [u8; 4] = raw.to_be_bytes();
 
-    //basic blocks are indexed by their base address only.
-    //this DOES mean that we may at some point try and jump into the middle of an existing basic block and not realize
-    //but we really dont give a shit because we can just make a new basic block, and since all instructions are RCed, we can include instructions in multiple blocks
-    pub Blocks: HashMap<usize, BasicBlock>,
+    /*let entry = self.ITC.entry(raw);
+    if let std::collections::hash_map::Entry::Occupied(v) = entry {
+        return v.get().clone();
+    }*/
 
-    //the disasembler needs some way to get bytes out of rom.
-    //since we are explicitly dealing with instructions, handle turning it into a u32 before it gets here
-    //this approach was fine-ish, but rendered a lot of implicit logic, a raw pointer, and an infectious implicit lifetime.
-    /*pub Reader: Box<dyn FnMut(usize) -> u32 + 'a>,
-    pub data: *mut Vec<u8>,
-    pub data_base_addr: usize,*/
+    //let opcode_bits = (raw & 0xFC00_0000) >> 26;
+    //let special_index = raw & 0x0000_003F;
+    //wtf was this for
+    //let regimm_index = (raw & 0x001F_0000) >> 16;
+    //let copzrs_index = (raw & 0x03E0_0000) >> 21;
+    //let copzrt_index = regimm_index;
+    //let cp0_index = special_index;
 
-    //instead, use a local mpsc channel pair to black box away the reads
-    //request the bytes at a physical address via the requester sender, and await a u32 of the 4 byte instruction located at that address
-    //every packet over the reader represents a PA:instruction pair
-    pub Requester: Sender<u32>,
-    pub Reader: Receiver<u32>,
-}
+    //parse out all the fields
+    let r_op_rs = ((raw & 0x03E0_0000) >> 21) as u8;
+    let r_op_rt = ((raw & 0x001F_0000) >> 16) as u8;
+    let r_op_rd = ((raw & 0x0000_F800) >> 11) as u8;
+    let r_op_shamt = ((raw & 0x0000_07C0) >> 6) as u8;
+    //let r_sub_op = (raw & 0x0000_003F) as u8;
 
-impl Disasembler {
-    //pub fn test_fn_addi(_cpu: &mut (dyn Cpu)) {}
+    let i_op_rs = ((raw & 0x03E0_0000) >> 21) as u8;
+    let i_op_rt = ((raw & 0x001F_0000) >> 16) as u8;
+    let i_op_imm = (raw & 0x0000_FFFF) as u16;
 
-    pub fn new(
-        requester: Sender<u32>,
-        reader: Receiver<u32>,
-    ) -> Self {
-        let s = Self {
-            ITC: HashMap::new(),
-            Blocks: HashMap::new(),
-            Reader: reader,
-            Requester: requester,
-            /*Reader: Box::new(|addr: usize| 0),
-            data,
-            data_base_addr: base_addr,*/
-        };
-        /*s.Reader = Box::new(move |addr: usize| unsafe {
-        u32::from_be_bytes(
-            s.data.as_mut().unwrap()[addr..(addr + 4)]
-                .try_into()
-                .expect("slice with incorrect length"),
-        )
-        });*/
+    let j_op_imm = raw & 0x007FF_FFFF;
 
-        s
-    }
-
-    //finding a basic block differs in interpreter and JIT mode
-    //in interpreter mode, a basic block is defined by as many instructions as you can go without hitting a control flow op
-    //in a jit block, the same rule holds BUT we may need to stop the block early if we run out of host registers (especially prevalent on x86)
-    //NOTE: maybe we just always find it in the "interpreter" way since thats the more textbook definition of a basic block
-    //and then in jit mode, if we run out of registers WHEN EMITTING we can split the basic block and error handle in the emitter
-
-    pub fn find_basic_block(&mut self, mut addr: usize) {
-        
-
-        let base_addr = addr;
-        let mut cur_block = BasicBlock {
-            _valid: true,
-            base: addr,
-            instrs: Vec::new(),
-        };
-
-        println!("[disas] starting to find basic block at addr {:#04x}",addr);
-
-        //grab some bytes and turn them into an instruction
-        self.Requester.send(addr as u32).unwrap();
-        println!("[disas] requested addr {:#04x}",addr as u32);
-
-        let mut cur_bytes = self.Reader.recv().unwrap();
-        println!("[disas] received instruction at addr {:#04x}",addr as u32);
-
-        let mut cur_instr = self.decode(cur_bytes, false);
-        addr += 4;
-
-        //did we just decode a block ending instruction?
-        while !INSTR_WHICH_END_BASIC_BLOCK.contains(&cur_instr.opcode) {
-            cur_block.instrs.push(cur_instr);
-
-            println!("[disas] requesting addr {:#04x}",addr as u32);
-            self.Requester.send(addr as u32).unwrap();
-            println!("[disas] received instruction at addr {:#04x}",addr as u32);
-            cur_bytes = self.Reader.recv().unwrap();
-            cur_instr = self.decode(cur_bytes, false);
-            addr += 4;
-        }
-
-        //ADD THE DELAY SLOT INSTRUCTION
-        /*if cur_instr.opcode != ERET {
-            //push the last instr we decoded before we figure out our block was over
-            cur_block.instrs.push(cur_instr);
-            cur_bytes = (self.Reader)(addr);
-            cur_instr = self.decode(cur_bytes, true);
-            cur_block.instrs.push(cur_instr);
-
-            //TODO:HANDLE DELAY SLOT FUCKERY(nested delay slots)
-        } else {*/
-            //push the last instr we decoded before we figure out our block was over
-        cur_block.instrs.push(cur_instr);
-        //}
-
-        //release the system
-        println!("[disas] sending stop byte");
-        self.Requester.send(0xFFFF_FFFF).unwrap();
-
-        self.Blocks.insert(
-            base_addr,
-            cur_block
-        );
-    }
-
-    //pub fn decode(&mut self, raw: u32) -> &Instruction<'disas, dyn Cpu + 'disas> {
-    pub fn decode(&mut self, raw: u32, delay_slot: bool) -> Arc<Instruction> {
-        let bytes: [u8; 4] = raw.to_be_bytes();
-
-        let entry = self.ITC.entry(raw);
-        if let std::collections::hash_map::Entry::Occupied(v) = entry {
-            return v.get().clone();
-        }
-
-        //let opcode_bits = (raw & 0xFC00_0000) >> 26;
-        //let special_index = raw & 0x0000_003F;
-        //wtf was this for
-        //let regimm_index = (raw & 0x001F_0000) >> 16;
-        //let copzrs_index = (raw & 0x03E0_0000) >> 21;
-        //let copzrt_index = regimm_index;
-        //let cp0_index = special_index;
-
-        //parse out all the fields
-        let r_op_rs = ((raw & 0x03E0_0000) >> 21) as u8;
-        let r_op_rt = ((raw & 0x001F_0000) >> 16) as u8;
-        let r_op_rd = ((raw & 0x0000_F800) >> 11) as u8;
-        let r_op_shamt = ((raw & 0x0000_07C0) >> 6) as u8;
-        //let r_sub_op = (raw & 0x0000_003F) as u8;
-
-        let i_op_rs = ((raw & 0x03E0_0000) >> 21) as u8;
-        let i_op_rt = ((raw & 0x001F_0000) >> 16) as u8;
-        let i_op_imm = (raw & 0x0000_FFFF) as u16;
-
-        let j_op_imm = raw & 0x007FF_FFFF;
-
-        let mut op: &Result<
-            (
-                instr::opcode,
-                InstructionFormat,
-                fn(&mut dyn Cpu, Instruction),
-            ),
-            DisasemblerError,
-        > = &Err(Lookup64(&opcode_main));
-        while op.as_ref().is_err_and(|x| *x != RIE && *x != InvOp) {
-            match op.as_ref().unwrap_err() {
-                Lookup32(x) => {
-                    op = &x.0[((raw as usize & x.1) >> x.2) as usize];
-                }
-                Lookup64(x) => {
-                    op = &x.0[((raw as usize & x.1) >> x.2) as usize];
-                }
-                _ => unreachable!("?"),
+    let mut op: &Result<
+        (
+            instr::opcode,
+            InstructionFormat,
+            fn(&mut dyn Cpu, Instruction),
+        ),
+        DisasemblerError,
+    > = &Err(Lookup64(&opcode_main));
+    while op.as_ref().is_err_and(|x| *x != RIE && *x != InvOp) {
+        match op.as_ref().unwrap_err() {
+            Lookup32(x) => {
+                op = &x.0[((raw as usize & x.1) >> x.2) as usize];
             }
+            Lookup64(x) => {
+                op = &x.0[((raw as usize & x.1) >> x.2) as usize];
+            }
+            _ => unreachable!("?"),
         }
-
-        //println!("final val after lookups: {:?}", op);
-
-        if op.is_err() {
-            panic!("decoded invalid opcode: {:?}, bytes: {:#x}", op, raw);
-        };
-
-        let (dest, sources): (Option<dest>, [Option<source>; 3]) = match op.as_ref().unwrap().1 {
-            I_t => (
-                Some(dest::GPR(GPR::from(i_op_rt))),
-                [
-                    Some(source::GPR(GPR::from(i_op_rs))),
-                    Some(source::IMM(i_op_imm.into())),
-                    None,
-                ],
-            ),
-            J_t => (None, [Some(source::IMM(j_op_imm.into())), None, None]),
-            R_t => (
-                Some(dest::GPR(GPR::from(r_op_rd))),
-                [
-                    Some(source::GPR(GPR::from(r_op_rs))),
-                    Some(source::GPR(GPR::from(r_op_rt))),
-                    Some(source::IMM(r_op_shamt.into())),
-                ],
-            ),
-            cop => panic!("cop opcodes arent supported yet"),
-        };
-
-        let function = op.as_ref().unwrap().2;
-
-        //let local: fn(&mut dyn Cpu, Instruction) = ;
-        let ret = entry.or_insert(Arc::new(Instruction {
-            bytes,
-            opcode: op.as_ref().unwrap().0,
-            sources,
-            dest,
-            operation: function,
-            //machine_code: Vec::new(),
-            delay_slot,
-        }));
-
-        return ret.clone();
     }
 
-    pub fn get_basic_block_at_addr(&mut self, addr: usize) -> Result<BasicBlock, &str> {
-        let existing = self.Blocks.entry(addr);
-        match existing{
-            std::collections::hash_map::Entry::Occupied(v) => return Ok(v.get().clone()),
-            std::collections::hash_map::Entry::Vacant(_) =>
-            {
-                self.find_basic_block(addr);
-                return Ok(self.Blocks.get(&addr).unwrap().clone());
-            },
-        }
+    //println!("final val after lookups: {:?}", op);
+
+    if op.is_err() {
+        panic!("decoded invalid opcode: {:?}, bytes: {:#x}", op, raw);
+    };
+
+    let (dest, sources): (Option<dest>, [Option<source>; 3]) = match op.as_ref().unwrap().1 {
+        I_t => (
+            Some(dest::GPR(GPR::from(i_op_rt))),
+            [
+                Some(source::GPR(GPR::from(i_op_rs))),
+                Some(source::IMM(i_op_imm.into())),
+                None,
+            ],
+        ),
+        J_t => (None, [Some(source::IMM(j_op_imm.into())), None, None]),
+        R_t => (
+            Some(dest::GPR(GPR::from(r_op_rd))),
+            [
+                Some(source::GPR(GPR::from(r_op_rs))),
+                Some(source::GPR(GPR::from(r_op_rt))),
+                Some(source::IMM(r_op_shamt.into())),
+            ],
+        ),
+        cop => panic!("cop opcodes arent supported yet"),
+    };
+
+    let function = op.as_ref().unwrap().2;
+
+    //let local: fn(&mut dyn Cpu, Instruction) = ;
+    /*let ret = entry.or_insert(Arc::new(Instruction {
+        bytes,
+        opcode: op.as_ref().unwrap().0,
+        sources,
+        dest,
+        operation: function,
+        //machine_code: Vec::new(),
+        delay_slot,
+    }));
+
+    return ret.clone();*/
+    Instruction {
+        bytes,
+        opcode: op.as_ref().unwrap().0,
+        sources,
+        dest,
+        operation: function,
+        //machine_code: Vec::new(),
+        delay_slot,
     }
 }
 
-//a basic block is a set of instructions.
-//these instructions may either be interpreted or emitted into a host buffer to be executed by the jit engine
-//this means that we must represent two possible
-#[derive(Clone)]
-pub struct BasicBlock {
-    //is this block currently valid?
-    _valid: bool,
-
-    //base address of the block: PHYSICAL ADDRESS
-    base: usize,
-
-    //each instruction in a basic block is actually a pointer to that opcode in the global instruction translation cache (ITC)
-    pub instrs: Vec<Arc<Instruction>>,
-}
+/*pub fn get_basic_block_at_addr(&mut self, addr: usize) -> Result<BasicBlock, &str> {
+    let existing = self.Blocks.entry(addr);
+    match existing {
+        std::collections::hash_map::Entry::Occupied(v) => return Ok(v.get().clone()),
+        std::collections::hash_map::Entry::Vacant(_) => {
+            self.find_basic_block(addr);
+            return Ok(self.Blocks.get(&addr).unwrap().clone());
+        }
+    }
+}*/
+//}
