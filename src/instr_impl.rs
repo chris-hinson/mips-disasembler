@@ -8,7 +8,7 @@ LW and SW implemented for good cases, but both have a huge variety of possible e
 */
 
 use crate::{
-    instr::{dest, source, Instruction, OpcodeExecutionError::*},
+    instr::{dest, source, Instruction, OpcodeExecutionError::*, OpcodeFetchError},
     Cpu,
 };
 
@@ -48,7 +48,7 @@ pub fn addi(cpu: &mut dyn Cpu, inst: Instruction) {
                 cpu.set_reg(rd, a + b).unwrap();
             } else {
                 //throw an arithmetic exception error
-                cpu.throw_exception(ArithmeticOverFlow, inst.delay_slot)
+                cpu.throw_exception(ArithmeticOverFlow.into(), inst.delay_slot)
             }
         }
         _ => unreachable!("uh oh. something's probably wrong in decode. badly formed instruction"),
@@ -259,9 +259,9 @@ pub fn sd(cpu: &mut dyn Cpu, inst: Instruction) {
 }
 pub fn sll(cpu: &mut dyn Cpu, inst: Instruction) {
     let original_value = cpu.get_reg(inst.sources[1].unwrap().into()).unwrap();
-    let shamt: u64 = (inst.sources[2].unwrap().into());
+    let shamt: u64 = inst.sources[2].unwrap().into();
     let new_value: u64 = original_value << shamt;
-    cpu.set_reg(inst.dest.unwrap().into(), new_value as u64);
+    cpu.set_reg(inst.dest.unwrap().into(), new_value as u64).unwrap();
 }
 pub fn srl(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode srl not implemented")
@@ -279,7 +279,13 @@ pub fn srav(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode srav not implemented")
 }
 pub fn jr(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode jr not implemented")
+    let addr = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap();
+    if (addr & 0b11) !=0{
+        //throw address exception as if it occured on the fetch stage
+        cpu.throw_exception(OpcodeFetchError::AddressAlignmentException.into(), inst.delay_slot);
+    }
+
+    cpu.set_pc(addr);
 }
 pub fn jalr(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode jalr not implemented")

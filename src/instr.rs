@@ -60,7 +60,7 @@ pub trait Cpu {
 
     fn get_cop_reg(&mut self, cop_indx: u8, reg_indx: u8) -> Result<u64, std::io::Error>;
     fn set_cop_reg(&mut self, cop_indx: u8, reg_indx: u8, val: u64) -> Result<u64, std::io::Error>;
-    fn throw_exception(&mut self, err: OpcodeExecutionError, delay_slot: bool) {}
+    fn throw_exception(&mut self, err: Exception, delay_slot: bool) {}
 
     fn read(&self, addr: usize, len: usize) -> std::io::Result<Vec<u8>>;
     fn write(&mut self, addr: usize, bytes: &[u8]) -> std::io::Result<usize>;
@@ -68,6 +68,23 @@ pub trait Cpu {
 pub enum OpcodeExecutionError {
     IoError,
     ArithmeticOverFlow,
+}
+pub enum OpcodeFetchError {
+    AddressAlignmentException
+}
+impl From<OpcodeExecutionError> for Exception{
+    fn from(value: OpcodeExecutionError) -> Self {
+        Exception::Execution(value)
+    }
+}
+impl From<OpcodeFetchError> for Exception{
+    fn from(value: OpcodeFetchError) -> Self {
+        Exception::Fetch(value)
+    }
+}
+pub enum Exception{
+    Execution(OpcodeExecutionError),
+    Fetch(OpcodeFetchError)
 }
 impl From<std::io::Error> for OpcodeExecutionError {
     fn from(_value: std::io::Error) -> Self {
