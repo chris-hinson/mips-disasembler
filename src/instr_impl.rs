@@ -65,7 +65,7 @@ pub fn beq(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode beq not implemented")
 }
 pub fn bne(cpu: &mut dyn Cpu, inst: Instruction) {
-    let mut offset: u64 = inst.sources[1].unwrap().into();
+    let offset: u64 = inst.sources[1].unwrap().into();
     let delay_slot = cpu.get_pc() + 4;
     let target = delay_slot as i64 + offset as i64;
 
