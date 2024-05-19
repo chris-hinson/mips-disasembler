@@ -8,7 +8,7 @@ LW and SW implemented for good cases, but both have a huge variety of possible e
 */
 
 use crate::{
-    instr::{dest, source, Instruction, OpcodeExecutionError::*, OpcodeFetchError},
+    instr::{dest, source, Exception, Instruction, OpcodeExecutionError::*, OpcodeFetchError},
     Cpu,
 };
 
@@ -172,7 +172,25 @@ pub fn lbu(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode lbu not implemented")
 }
 pub fn lhu(cpu: &mut dyn Cpu, inst: Instruction) {
-    unimplemented!("opcode lhu not implemented")
+    let offset: i64 = (<source as Into<u64>>::into(inst.sources[1].unwrap()) as i16) as i64;
+    let base: i64 = (cpu.get_reg(inst.sources[0].unwrap().into()).unwrap() as u64) as i64;
+    let final_addr = base + offset;
+
+    if final_addr & 0b1 != 0 {
+        cpu.throw_exception(
+            Exception::Fetch(OpcodeFetchError::AddressAlignmentException),
+            inst.delay_slot,
+        )
+    }
+
+    let hw = u16::from_be_bytes(
+        cpu.read(final_addr as usize, 2).unwrap()[0..2]
+            .try_into()
+            .expect("lhu"),
+    );
+
+    let hw_zxt = hw as u64;
+    cpu.set_reg(inst.dest.unwrap().into(), hw_zxt);
 }
 pub fn lwr(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode lwr not implemented")
@@ -261,7 +279,8 @@ pub fn sll(cpu: &mut dyn Cpu, inst: Instruction) {
     let original_value = cpu.get_reg(inst.sources[1].unwrap().into()).unwrap();
     let shamt: u64 = inst.sources[2].unwrap().into();
     let new_value: u64 = original_value << shamt;
-    cpu.set_reg(inst.dest.unwrap().into(), new_value as u64).unwrap();
+    cpu.set_reg(inst.dest.unwrap().into(), new_value as u64)
+        .unwrap();
 }
 pub fn srl(cpu: &mut dyn Cpu, inst: Instruction) {
     unimplemented!("opcode srl not implemented")
@@ -280,9 +299,12 @@ pub fn srav(cpu: &mut dyn Cpu, inst: Instruction) {
 }
 pub fn jr(cpu: &mut dyn Cpu, inst: Instruction) {
     let addr = cpu.get_reg(inst.sources[0].unwrap().into()).unwrap();
-    if (addr & 0b11) !=0{
+    if (addr & 0b11) != 0 {
         //throw address exception as if it occured on the fetch stage
-        cpu.throw_exception(OpcodeFetchError::AddressAlignmentException.into(), inst.delay_slot);
+        cpu.throw_exception(
+            OpcodeFetchError::AddressAlignmentException.into(),
+            inst.delay_slot,
+        );
     }
 
     cpu.set_pc(addr);
